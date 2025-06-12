@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Analyzer - NLP-powered Resume Analysis</title>
+    
+    <!-- Bootstrap CSS (Replit-themed) -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-dark py-3">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-5 text-white">
+                        <i class="fas fa-file-alt me-2"></i> Resume Analyzer
+                    </h1>
+                    <p class="lead text-light">Unlock insights from your resume with NLP-powered analysis</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex justify-content-end align-items-center">
+                        <span class="badge bg-info me-2">NLP</span>
+                        <span class="badge bg-success me-2">Skills Analysis</span>
+                        <span class="badge bg-warning text-dark">Job Matching</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container py-4">
+        <!-- Upload Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h4 mb-0"><i class="fas fa-upload me-2"></i> Upload Your Resume</h2>
+            </div>
+            <div class="card-body">
+                <!-- Error Alert -->
+                <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="errorMessage"></span>
+                </div>
+                
+                <form id="uploadForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <!-- File Upload -->
+                            <label for="resumeFile" class="form-label">Upload Resume (PDF or DOCX)</label>
+                            <div id="fileUploadArea" class="custom-file-upload">
+                                <i class="fas fa-file-upload fs-2 mb-2"></i>
+                                <p class="mb-1">Drag & drop your resume here</p>
+                                <p class="text-muted small">or</p>
+                                <input class="d-none" type="file" id="resumeFile" name="resumeFile" accept=".pdf,.docx">
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('resumeFile').click()">
+                                    Browse Files
+                                </button>
+                            </div>
+                            
+                            <!-- File Info -->
+                            <div id="fileInfo" class="mt-2 d-none">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-file-alt me-2 text-primary"></i>
+                                    <span id="fileName"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <!-- Job Description -->
+                            <label for="jobDescription" class="form-label">Job Description (Optional)</label>
+                            <textarea class="form-control" id="jobDescription" name="job_description" rows="8" placeholder="Paste the job description here to see how well your resume matches"></textarea>
+                            <div class="form-text">Adding a job description enables keyword matching and improves job role prediction.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                        <button type="button" id="clearBtn" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Clear
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i> Analyze Resume
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="spinner-container d-none">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Analyzing your resume... This may take a moment.</p>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="resultsSection" class="d-none">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h2 class="h4 mb-0"><i class="fas fa-chart-pie me-2"></i> Resume Analysis Results</h2>
+                        </div>
+                        <div class="card-body">
+                            <p class="lead">
+                                Here's what we found in your resume. We've extracted key information and analyzed it using Natural Language Processing techniques.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analytics Section -->
+            <div id="analyticsSection">
+                <div class="row">
+                    <!-- Personal Information -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h3 class="h5 mb-0"><i class="fas fa-user me-2"></i> Personal Information</h3>
+                            </div>
+                            <div class="card-body">
+                                <dl class="row">
+                                    <dt class="col-sm-3">Name</dt>
+                                    <dd class="col-sm-9" id="nameValue">-</dd>
+                                    
+                                    <dt class="col-sm-3">Email</dt>
+                                    <dd class="col-sm-9" id="emailValue">-</dd>
+                                    
+                                    <dt class="col-sm-3">Phone</dt>
+                                    <dd class="col-sm-9" id="phoneValue">-</dd>
+                                </dl>
+                                
+                                <hr>
+                                
+                                <h5 class="mt-3">Education</h5>
+                                <ul class="list-group list-group-flush" id="educationList">
+                                    <li class="list-group-item">Loading education information...</li>
+                                </ul>
+                                
+                                <h5 class="mt-3">Experience</h5>
+                                <ul class="list-group list-group-flush" id="experienceList">
+                                    <li class="list-group-item">Loading experience information...</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Skills Analysis -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h3 class="h5 mb-0">
+                                    <i class="fas fa-cogs me-2"></i> Skills Analysis
+                                    <span class="badge bg-primary rounded-pill ms-2" id="skillsCount">0</span>
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <h5>Skills Distribution</h5>
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>Technical Skills</span>
+                                        <span id="technicalSkillsText">0 skills</span>
+                                    </label>
+                                    <div class="progress mb-2">
+                                        <div id="technicalSkillsBar" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>Soft Skills</span>
+                                        <span id="softSkillsText">0 skills</span>
+                                    </label>
+                                    <div class="progress mb-2">
+                                        <div id="softSkillsBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                
+                                <h5>Technical Skills</h5>
+                                <div id="technicalSkillsList" class="mb-3">
+                                    <p class="text-muted">Loading technical skills...</p>
+                                </div>
+                                
+                                <h5>Soft Skills</h5>
+                                <div id="softSkillsList" class="mb-3">
+                                    <p class="text-muted">Loading soft skills...</p>
+                                </div>
+                                
+                                <h5>Other Skills</h5>
+                                <div id="otherSkillsList" class="mb-3">
+                                    <p class="text-muted">Loading other skills...</p>
+                                </div>
+                                
+                                <h5>Languages</h5>
+                                <div id="languagesList" class="mb-3">
+                                    <p class="text-muted">Loading languages...</p>
+                                </div>
+                                
+                                <h5>Certifications</h5>
+                                <div id="certificationsList">
+                                    <p class="text-muted">Loading certifications...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Job Match Analysis (conditional) -->
+                    <div id="jobMatchSection" class="col-md-6 mb-4 d-none">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h3 class="h5 mb-0"><i class="fas fa-briefcase me-2"></i> Job Match Analysis</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <h2 class="match-percentage" id="matchPercentage">0%</h2>
+                                    <p class="text-muted">Resume match with job description</p>
+                                    
+                                    <div class="progress mb-4" style="height: 10px;">
+                                        <div id="matchProgressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5><i class="fas fa-check-circle text-success me-2"></i> Matched Keywords</h5>
+                                        <ul class="list-group list-group-flush" id="matchedKeywordsList">
+                                            <li class="list-group-item">Loading matched keywords...</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5><i class="fas fa-times-circle text-danger me-2"></i> Missing Keywords</h5>
+                                        <ul class="list-group list-group-flush" id="missingKeywordsList">
+                                            <li class="list-group-item">Loading missing keywords...</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Job Role Prediction -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h3 class="h5 mb-0"><i class="fas fa-bullseye me-2"></i> Job Role Prediction</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="rolesChartContainer" class="mb-4" style="height: 200px;">
+                                    <canvas id="rolesChart"></canvas>
+                                </div>
+                                
+                                <h5>Best Matching Roles</h5>
+                                <ul class="list-group list-group-flush mb-4" id="rolesList">
+                                    <li class="list-group-item">Loading job role predictions...</li>
+                                </ul>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- This section is intentionally left empty to maintain layout grid -->
+                                    
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- This section is intentionally left empty to maintain layout grid -->
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Resume Analyzer</h4>
+                    <p>
+                        This tool uses Natural Language Processing to analyze resumes and provide insights on skills, 
+                        job matching, and text quality. Upload your resume and get detailed feedback instantly.
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Features</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check me-2"></i> Resume Parsing</li>
+                        <li><i class="fas fa-check me-2"></i> Skill Extraction</li>
+                        <li><i class="fas fa-check me-2"></i> Job Matching</li>
+                        <li><i class="fas fa-check me-2"></i> Role Prediction</li>
+                        <!-- Removed Grammar Check feature -->
+                        <li><i class="fas fa-check me-2"></i> NLP Analysis</li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Supported Formats</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-file-pdf me-2"></i> PDF files</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="text-center">
+                <p class="mb-0">© 2025 Resume Analyzer • Powered by AI & NLP</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
